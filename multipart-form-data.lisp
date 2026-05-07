@@ -24,6 +24,7 @@
   ((name :initarg :name :initform (error "name must be defined"))
    (type :initarg :type :initform (error "type must be defined"))
    (content-type :initarg :content-type :initform (error "content-type must be defined"))
+   (filename :initarg :filename :initform nil)
    (stream :initarg :stream :initform (error "stream must be defined"))
    (length :initarg :length :initform 0))
   (:documentation "A form data item"))
@@ -43,13 +44,16 @@
 			stream
 			&key
 			  (content-type "application/octet-stream")
-			  (length (length stream))
+			  (length 0)
+			  (filename nil)
 			&allow-other-keys)
   (push (make-instance 'form-item
 		       :name name
 		       :type type
 		       :content-type content-type
-		       :stream stream)
+		       :filename filename
+		       :stream stream
+		       :length length)
 	(slot-value obj 'items)))
 
 (defmethod append-data ((type (eql :field))
@@ -57,26 +61,43 @@
 			name
 			stream
 			&key (content-type "text/plain")
+			     (length 0)
 			&allow-other-keys)
   (push (make-instance 'form-item
 		       :name name
 		       :type type
 		       :content-type content-type
-		       :stream stream)
+		       :stream stream
+		       :length length)
 	(slot-value obj 'items)))
 
 (defmethod response-header-content-type ((obj form-data))
   (format nil "multipart/form-data; boundary=~a" (slot-value obj 'boundary)))
 
 (defmethod response-content ((obj form-data))
-  (flet ((section (boundary item)
-	   (format nil "--~a~aContent-Disposition: form-data; name=\"~a\"~a~a~a"
-		   boundary ; 1
-		   *crlf* ; 2
-		   (slot-value item 'name) ; 3
-		   *crlf* ; 4
-		   *crlf* ; 5
-		   (read-line (slot-value item 'stream) nil ""))))
+  (labels ((read-stream (s)
+	     (let ((buf (make-string 4096)))
+	       (with-output-to-string (out)
+		 (loop for n = (read-sequence buf s)
+		       while (plusp n)
+		       do (write-string buf out :end n)))))
+	   (section (boundary item)
+	     (let* ((name (slot-value item 'name))
+		    (type (slot-value item 'type))
+		    (content-type (slot-value item 'content-type))
+		    (filename (slot-value item 'filename))
+		    (body (read-stream (slot-value item 'stream)))
+		    (disposition
+		     (if (and (eq type :file) filename)
+			 (format nil "Content-Disposition: form-data; name=\"~a\"; filename=\"~a\""
+				 name filename)
+			 (format nil "Content-Disposition: form-data; name=\"~a\"" name))))
+	       (concatenate 'string
+			    "--" boundary *crlf*
+			    disposition *crlf*
+			    *content-type* ": " content-type *crlf*
+			    *crlf*
+			    body))))
     (let ((boundary (slot-value obj 'boundary)))
       (concatenate 'string
 		   (reduce (lambda (acc item)
@@ -126,13 +147,16 @@
     results))
 
 (defun parse-content-disposition (str)
-  (reduce (lambda (acc item)
-	    (destructuring-bind (key val)
-		(str:split "=" (string-trim " " item))
-	      (setf (gethash key acc) (str:replace-all "\"" "" val))
-	      acc))
-	  (cdr (str:split ";" str :start (position #\; str)))
-	  :initial-value (cl-hash-util:hash-create nil)))
+  (let ((result (cl-hash-util:hash-create nil))
+	(start (position #\; str)))
+    (when start
+      (dolist (item (str:split ";" (subseq str (1+ start))))
+	(let* ((trimmed (string-trim " " item))
+	       (eq-pos (position #\= trimmed)))
+	  (when eq-pos
+	    (setf (gethash (string-trim " " (subseq trimmed 0 eq-pos)) result)
+		  (str:replace-all "\"" "" (subseq trimmed (1+ eq-pos))))))))
+    result))
 
 (defmethod parse (boundary content)
   (reduce (lambda (acc field)
@@ -144,11 +168,13 @@
 		   (mime (or (alexandria:assoc-value headers *content-type*
 						    :test 'string-equal)
 			    "text/plain"))
-		   (spec (find-if (lambda (spec) (string-equal mime (car spec))) *d*)))
-	      (destructuring-bind (mime-type sym . transformer)
-		  spec
-		(progn
-		  (push (list (gethash "name" info) (funcall transformer body)) acc)
-		  acc))))
+		   (spec (find-if (lambda (spec) (string-equal mime (car spec))) *d*))
+		   (transformer (if spec
+				    (destructuring-bind (mime-type sym . fn) spec
+				      (declare (ignore mime-type sym))
+				      fn)
+				    #'identity)))
+	      (push (list (gethash "name" info) (funcall transformer body)) acc)
+	      acc))
 	  (parse-body boundary content)
 	  :initial-value nil))
