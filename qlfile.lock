@@ -2,3 +2,11 @@
  (:class qlot/source/dist:source-dist
   :initargs (:distribution "https://beta.quicklisp.org/dist/quicklisp.txt" :%version :latest)
   :version "2026-01-01"))
+("cl-coverage-tools" .
+ (:class qlot/source/github:source-github
+  :initargs (:repos "cl-sdk/cl-coverage-tools" :ref nil :branch nil :tag "1.0")
+  :version "github-f69f89abcafbc97528216773b37ad04a2dc0f83e"))
+("fast-http" .
+ (:class qlot/source/github:source-github
+  :initargs (:repos "fukamachi/fast-http" :ref nil :branch "master" :tag nil)
+  :version "github-03d440dbf5aca1c791be6c3ee15b30f0e75d6968"))

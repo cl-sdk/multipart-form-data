@@ -4,6 +4,6 @@
 
 (asdf:initialize-source-registry)
 
-(ql:quickload :cl-json.test)
+(ql:quickload :multipart-form-data.test)
 
-(parachute:test :cl-json.test)
+(5am:run-all-tests)

@@ -4,4 +4,8 @@
       (load quicklisp-init)))
 
 #+quicklisp
-(push #P"/usr/local/src/multipart-form-data" ql:*local-project-directories*)
+(progn
+        (push #P"/usr/local/src/multipart-form-data" ql:*local-project-directories*)
+        (setf asdf/source-registry::*source-registry-file* #P"./.qlot/")
+        (asdf:initialize-source-registry))
+
