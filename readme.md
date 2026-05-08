@@ -2,6 +2,8 @@
 
 Implementation of http's form data to parse and build forms to send over HTTP.
 
+This library lets you both generate multipart/form-data payloads and parse incoming multipart bodies. The examples below show the basic workflow for each direction so you can quickly integrate it with your HTTP client or server code.
+
 ## Example: build a multipart/form-data request body
 
 ```lisp
