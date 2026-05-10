@@ -1,4 +1,4 @@
-(defpackage #:multipart-form-data
+(defpackage #:io.github.cl-sdk.multipart-form-data
   (:use #:cl)
   (:export
    #:form-data
@@ -9,7 +9,7 @@
    #:response-submit
    #:parse))
 
-(in-package :multipart-form-data)
+(in-package :io.github.cl-sdk.multipart-form-data)
 
 (defvar *crlf* (concatenate 'string (string #\return) (string #\linefeed)))
 (defvar *content-disposition* "Content-Disposition")

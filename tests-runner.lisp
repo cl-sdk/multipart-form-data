@@ -4,6 +4,6 @@
 
 (asdf:initialize-source-registry)
 
-(ql:quickload :multipart-form-data.test)
+(ql:quickload :io.github.cl-sdk.multipart-form-data.test)
 
 (5am:run-all-tests)
