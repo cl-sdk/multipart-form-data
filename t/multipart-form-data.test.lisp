@@ -1,8 +1,8 @@
-(defpackage #:multipart-form-data.test
-  (:use #:cl #:multipart-form-data #:fiveam)
+(defpackage #:io.github.cl-sdk.multipart-form-data.test
+  (:use #:cl #:io.github.cl-sdk.multipart-form-data #:fiveam)
   (:export #:run-tests))
 
-(in-package #:multipart-form-data.test)
+(in-package #:io.github.cl-sdk.multipart-form-data.test)
 
 (defun string-contains-p (text needle)
   (not (null (search needle text :test #'char=))))
